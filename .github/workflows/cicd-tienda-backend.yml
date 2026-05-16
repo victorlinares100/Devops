@@ -3,9 +3,7 @@ name: CI/CD Tienda Perritos - Backend
 on:
   push:
     branches: [ "deploy" ]
-    paths:
-      - "backend/**"
-
+   
 jobs:
   build-push-deploy-backend:
     runs-on: ubuntu-latest
