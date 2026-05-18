@@ -29,13 +29,8 @@ docker-compose up --build
 - Swagger Despachos: http://localhost:3002/swagger-ui.htm
 
 ## Estructura del proyecto
-DEVOPS/
-├── .github/workflows/    Pipelines CI/CD
-├── backend/              Microservicios Spring Boot
-├── db/                   MySQL Dockerfile e init.sql
-├── frontend/             React + Vite + Nginx
-├── docker-compose.yml
-└── .env.example
+<img width="463" height="157" alt="image" src="https://github.com/user-attachments/assets/19078489-485b-4e45-9ee3-05ba2acad620" />
+
 
 ## Pipeline CI/CD
 Cada push a la rama deploy activa automáticamente:
