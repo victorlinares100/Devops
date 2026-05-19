@@ -10,6 +10,9 @@ volumes:
 
 services:
 
+  # ==========================================
+  # ENTORNO DE BASE DE DATOS (Para máquina: ec2-db)
+  # ==========================================
   db:
     build:
       context: ./db
@@ -27,14 +30,10 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - tienda-net
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-admin123}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
-  # BACKEND - Microservicio Ventas
+  # ==========================================
+  # ENTORNO DE BACKEND (Para máquina: ec2-backend)
+  # ==========================================
   backend-ventas:
     build:
       context: ./backend/back-Ventas_SpringBoot
@@ -42,23 +41,19 @@ services:
     container_name: tienda-backend-ventas
     restart: unless-stopped
     environment:
-      DB_ENDPOINT: "db"
+      DB_ENDPOINT: "10.0.0.124"        # <--- Corregido a tu IP real de ec2-db
       DB_PORT: "3306"
-      SPRING_DATASOURCE_URL: "jdbc:mysql://db:3306/tienda_perritos?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://10.0.0.124:3306/tienda_perritos?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true"
       SPRING_DATASOURCE_USERNAME: alumno
       SPRING_DATASOURCE_PASSWORD: alumno123
       DB_NAME: ${MYSQL_DATABASE:-tienda_perritos}
       DB_USERNAME: ${MYSQL_USER:-alumno}
       DB_PASSWORD: ${MYSQL_PASSWORD:-alumno123}
     ports:
-      - "3001:8080" # Mapea el puerto 3001 del host al 8080 interno
-    depends_on:
-      db:
-        condition: service_healthy
+      - "3001:8080"
     networks:
       - tienda-net
 
-  # BACKEND - Microservicio Despachos
   backend-despachos:
     build:
       context: ./backend/back-Despachos_SpringBoot
@@ -66,35 +61,31 @@ services:
     container_name: tienda-backend-despachos
     restart: unless-stopped
     environment:
-      DB_ENDPOINT: "db"
+      DB_ENDPOINT: "10.0.0.124"        # <--- Corregido a tu IP real de ec2-db
       DB_PORT: "3306"
-      SPRING_DATASOURCE_URL: "jdbc:mysql://db:3306/tienda_perritos?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://10.0.0.124:3306/tienda_perritos?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true"
       SPRING_DATASOURCE_USERNAME: alumno
       SPRING_DATASOURCE_PASSWORD: alumno123
       DB_NAME: ${MYSQL_DATABASE:-tienda_perritos}
       DB_USERNAME: ${MYSQL_USER:-alumno}
       DB_PASSWORD: ${MYSQL_PASSWORD:-alumno123}
     ports:
-      - "3002:8080" # <--- Corregido a 8080 (asumiendo puerto por defecto de Spring Boot)
-    depends_on:
-      db:
-        condition: service_healthy
+      - "3002:8080"
     networks:
       - tienda-net
 
-  # FRONTEND - React + Vite servido por Nginx
+  # ==========================================
+  # ENTORNO DE FRONTEND (Para máquina: ec2-front)
+  # ==========================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=/ # <--- Configurado como ruta relativa para que Nginx tome el control
+        - VITE_API_URL=/ 
     container_name: tienda-frontend
     restart: unless-stopped
     ports:
       - "80:80"
-    depends_on:
-      - backend-ventas
-      - backend-despachos
     networks:
       - tienda-net
