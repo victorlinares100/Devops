@@ -7,6 +7,7 @@ networks:
 volumes:
   mysql_data:
     driver: local
+
 services:
 
   db:
@@ -34,7 +35,6 @@ services:
       start_period: 30s
 
   # BACKEND - Microservicio Ventas
-  # Host:3001 → Contenedor:8080
   backend-ventas:
     build:
       context: ./backend/back-Ventas_SpringBoot
@@ -51,7 +51,7 @@ services:
       DB_USERNAME: ${MYSQL_USER:-alumno}
       DB_PASSWORD: ${MYSQL_PASSWORD:-alumno123}
     ports:
-      - "3001:8080"
+      - "3001:8080" # Mapea el puerto 3001 del host al 8080 interno
     depends_on:
       db:
         condition: service_healthy
@@ -59,7 +59,6 @@ services:
       - tienda-net
 
   # BACKEND - Microservicio Despachos
-  # Host:3002 Contenedor:8081
   backend-despachos:
     build:
       context: ./backend/back-Despachos_SpringBoot
@@ -76,7 +75,7 @@ services:
       DB_USERNAME: ${MYSQL_USER:-alumno}
       DB_PASSWORD: ${MYSQL_PASSWORD:-alumno123}
     ports:
-      - "3002:8081"
+      - "3002:8080" # <--- Corregido a 8080 (asumiendo puerto por defecto de Spring Boot)
     depends_on:
       db:
         condition: service_healthy
@@ -88,6 +87,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/ # <--- Configurado como ruta relativa para que Nginx tome el control
     container_name: tienda-frontend
     restart: unless-stopped
     ports:
