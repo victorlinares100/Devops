@@ -8,7 +8,7 @@ export const TableDespachos = () => {
 
   const despacho = async () => {
     await axios
-      .get("/api/v1/despachos/", {
+      .get("http://10.0.13.173/api/v1/despachos/", {
         headers:{
               'Content-Type': 'application/json',
               'Accept': 'application/json'
