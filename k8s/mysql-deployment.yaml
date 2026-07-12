@@ -23,6 +23,23 @@ spec:
           envFrom:
             - secretRef:
                 name: mysql-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 20
+            periodSeconds: 20
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql

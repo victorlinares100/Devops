@@ -18,6 +18,10 @@ spec:
       containers:
         - name: backend-despachos
           image: 210011303411.dkr.ecr.us-east-1.amazonaws.com/tienda-backend:despachos-latest
+          # OJO: confirma el server.port real en application.properties.
+          # El Dockerfile declara EXPOSE 8081 pero el docker-compose mapea a 8080.
+          # Si tu app en verdad escucha en 8081, cambia containerPort aqui
+          # Y targetPort en backend-despachos-service.yaml a 8081.
           ports:
             - containerPort: 8080
           env:
@@ -42,3 +46,20 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: MYSQL_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
