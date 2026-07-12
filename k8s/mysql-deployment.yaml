@@ -4,45 +4,28 @@ metadata:
   name: despachos-db
   namespace: despachos
   labels:
-    app: backend-despachos
+    app: despachos-db
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: backend-despachos
+      app: despachos-db
   template:
     metadata:
       labels:
-        app: backend-despachos
+        app: despachos-db
     spec:
       containers:
-        - name: backend-despachos
-          image: 210011303411.dkr.ecr.us-east-1.amazonaws.com/tienda-backend:despachos-latest
-          # NOTA: el Dockerfile declara EXPOSE 8081, pero el docker-compose.yml
-          # mapea 3002:8080, es decir en la practica el contenedor escucha en 8080.
-          # Verifica el server.port real en application.properties; si de verdad
-          # es 8081, cambia el containerPort de abajo.
+        - name: db
+          image: 210011303411.dkr.ecr.us-east-1.amazonaws.com/tienda-db:latest
           ports:
-            - containerPort: 8080
-          env:
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://mysql.despachos.svc.cluster.local:3306/tienda_perritos?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true"
-            - name: DB_ENDPOINT
-              value: "mysql.despachos.svc.cluster.local"
-            - name: DB_PORT
-              value: "3306"
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_DATABASE
-            - name: SPRING_DATASOURCE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_USER
-            - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_PASSWORD
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: mysql-secret
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          emptyDir: {}

@@ -5,7 +5,7 @@ metadata:
   namespace: despachos
 spec:
   selector:
-    app: backend-despachos
+    app: backend-ventas
   ports:
     - port: 8080
       targetPort: 8080

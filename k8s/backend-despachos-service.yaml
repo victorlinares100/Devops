@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: backend-despachos
   namespace: despachos
-type: Opaque
-stringData:
-  MYSQL_ROOT_PASSWORD: "admin123"
-  MYSQL_DATABASE: "tienda_perritos"
-  MYSQL_USER: "alumno"
-  MYSQL_PASSWORD: "alumno123"
+spec:
+  selector:
+    app: backend-despachos
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP

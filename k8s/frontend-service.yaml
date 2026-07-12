@@ -5,8 +5,8 @@ metadata:
   namespace: despachos
 spec:
   selector:
-    app: despachos-db
+    app: frontend
   ports:
-    - port: 3306
-      targetPort: 3306
-  clusterIP: None
+    - port: 80
+      targetPort: 80
+  type: LoadBalancer
