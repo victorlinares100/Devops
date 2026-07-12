@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: despachos-db
+  namespace: despachos
+  labels:
+    app: despachos-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: despachos-db
+  template:
+    metadata:
+      labels:
+        app: despachos-db
+    spec:
+      containers:
+        - name: db
+          image: 210011303411.dkr.ecr.us-east-1.amazonaws.com/tienda-db:latest
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: mysql-secret
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          emptyDir: {}
