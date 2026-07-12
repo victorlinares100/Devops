@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql
+  name: frontend
   namespace: despachos
 spec:
   selector:

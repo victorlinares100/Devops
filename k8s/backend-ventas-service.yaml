@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-despachos
+  name: backend-ventas
   namespace: despachos
 spec:
   selector:

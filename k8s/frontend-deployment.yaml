@@ -1,7 +1,7 @@
 apiVersion: apps/v1
-kind: Secret
+kind: Deployment
 metadata:
-  name: mysql-secret
+  name: frontend
   namespace: despachos
   labels:
     app: frontend
