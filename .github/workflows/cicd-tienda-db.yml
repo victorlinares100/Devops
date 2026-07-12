@@ -1,9 +1,8 @@
-name: CI/CD Tienda Perritos - DB
+name: CI/CD Tienda Despachos - DB
 
 on:
   push:
     branches: [ "deploy" ]
-
 
 jobs:
   build-push-deploy-db:
@@ -35,19 +34,31 @@ jobs:
           docker tag tienda-db:latest ${{ secrets.ECR_REPO_URL_DB }}:latest
           docker push ${{ secrets.ECR_REPO_URL_DB }}:latest
 
-      # 5. Desplegar DB en EC2 vía SSM
-      - name: Desplegar DB en EC2 vía SSM
+      # 5. Instalar kubectl
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.29.0
+
+      # 6. Configurar kubeconfig para el clúster EKS
+      - name: Configurar kubeconfig para EKS
         run: |
-          aws ssm send-command \
-            --instance-ids ${{ secrets.EC2_BACKEND_INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --comment "Actualizar tienda-db desde ECR" \
-            --parameters commands='[
-              "set -e",
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-              "docker pull ${{ secrets.ECR_REPO_URL_DB }}:latest",
-              "docker stop tienda-db || true",
-              "docker rm tienda-db || true",
-              "docker run -d --name tienda-db -p 3306:3306 --restart unless-stopped -v mysql_data:/var/lib/mysql ${{ secrets.ECR_REPO_URL_DB }}:latest"
-            ]' \
-            --output text
+          aws eks update-kubeconfig \
+            --region ${{ secrets.AWS_REGION }} \
+            --name ${{ secrets.EKS_CLUSTER_NAME }}
+          kubectl config current-context
+
+      # 7. Aplicar namespace (idempotente)
+      - name: Aplicar namespace
+        run: kubectl apply -f k8s/namespace.yaml
+
+      # 8. Desplegar MySQL en EKS
+      - name: Desplegar DB en EKS
+        run: |
+          kubectl apply -f k8s/mysql-secret.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl apply -f k8s/mysql-deployment.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl apply -f k8s/mysql-service.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl set image deployment/despachos-db \
+            db=${{ secrets.ECR_REPO_URL_DB }}:latest \
+            -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/despachos-db -n ${{ secrets.EKS_NAMESPACE }}

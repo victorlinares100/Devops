@@ -1,9 +1,9 @@
-name: CI/CD Tienda Perritos - Backend
+name: CI/CD Tienda Despachos - Backend
 
 on:
   push:
     branches: [ "deploy" ]
-   
+
 jobs:
   build-push-deploy-backend:
     runs-on: ubuntu-latest
@@ -41,23 +41,39 @@ jobs:
           docker tag tienda-backend-despachos:latest ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-latest
           docker push ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-latest
 
-      # 5. Desplegar ambos backends en EC2 vía SSM
-      - name: Desplegar Backend en EC2 vía SSM
+      # 5. Instalar kubectl
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.29.0
+
+      # 6. Configurar kubeconfig para el clúster EKS
+      - name: Configurar kubeconfig para EKS
         run: |
-          aws ssm send-command \
-            --instance-ids ${{ secrets.EC2_BACKEND_INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --comment "Actualizar backends desde ECR" \
-            --parameters commands='[
-              "set -e",
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-              "docker pull ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-latest",
-              "docker pull ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-latest",
-              "docker stop tienda-backend-ventas || true",
-              "docker rm tienda-backend-ventas || true",
-              "docker run -d --name tienda-backend-ventas -p 3001:8080 --restart unless-stopped -e DB_ENDPOINT=${{ secrets.DB_ENDPOINT }} -e DB_PORT=3306 -e DB_NAME=${{ secrets.DB_NAME }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} ${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-latest",
-              "docker stop tienda-backend-despachos || true",
-              "docker rm tienda-backend-despachos || true",
-              "docker run -d --name tienda-backend-despachos -p 3002:8081 --restart unless-stopped -e DB_ENDPOINT=${{ secrets.DB_ENDPOINT }} -e DB_PORT=3306 -e DB_NAME=${{ secrets.DB_NAME }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} ${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-latest"
-            ]' \
-            --output text
+          aws eks update-kubeconfig \
+            --region ${{ secrets.AWS_REGION }} \
+            --name ${{ secrets.EKS_CLUSTER_NAME }}
+          kubectl config current-context
+
+      # 7. Aplicar namespace (idempotente, no falla si ya existe)
+      - name: Aplicar namespace
+        run: kubectl apply -f k8s/namespace.yaml
+
+      # 8. Desplegar ambos backends en EKS
+      - name: Desplegar Backend Ventas en EKS
+        run: |
+          kubectl apply -f k8s/backend-ventas-deployment.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl apply -f k8s/backend-ventas-service.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl set image deployment/backend-ventas \
+            backend-ventas=${{ secrets.ECR_REPO_URL_BACKEND }}:ventas-latest \
+            -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/backend-ventas -n ${{ secrets.EKS_NAMESPACE }}
+
+      - name: Desplegar Backend Despachos en EKS
+        run: |
+          kubectl apply -f k8s/backend-despachos-deployment.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl apply -f k8s/backend-despachos-service.yaml -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl set image deployment/backend-despachos \
+            backend-despachos=${{ secrets.ECR_REPO_URL_BACKEND }}:despachos-latest \
+            -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/backend-despachos -n ${{ secrets.EKS_NAMESPACE }}
